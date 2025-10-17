@@ -7,9 +7,6 @@ on:
     types: [published]
 
 jobs:
-  # -----------------------
-  # PR Build : vérifie la compilation
-  # -----------------------
   build-pr:
     name: Build PR (Check compile)
     runs-on: ${{ matrix.os }}
@@ -58,9 +55,6 @@ jobs:
         run: dotnet build -f net8.0-windows10.0.19041.0 -c Release
         shell: pwsh
 
-  # -----------------------
-  # Release Build : build complet + artefacts
-  # -----------------------
   build-release:
     name: Build Release
     runs-on: ${{ matrix.os }}
@@ -68,7 +62,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        arch: [x64, arm64]  # pour macOS uniquement
+        arch: [x64]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -105,7 +99,7 @@ jobs:
       - name: Publish MAUI app (macOS)
         if: runner.os == 'macOS'
         run: |
-          dotnet publish -f net8.0-maccatalyst -c Release -p:RuntimeIdentifier=osx-${{ matrix.arch }} -o publish/
+          dotnet publish -f net8.0-maccatalyst -c Release -o publish/
           dotnet publish -f net8.0-android -c Release -o publish/
           dotnet publish -f net8.0-ios -c Release -o publish/
 
@@ -119,4 +113,3 @@ jobs:
         with:
           name: MauiApp-${{ runner.os }}-${{ matrix.arch }}
           path: publish/
-
