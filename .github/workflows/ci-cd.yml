@@ -1,0 +1,122 @@
+name: CI/CD MAUI
+
+on:
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+
+jobs:
+  # -----------------------
+  # PR Build : vérifie la compilation
+  # -----------------------
+  build-pr:
+    name: Build PR (Check compile)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install MAUI workloads (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          dotnet workload install maui
+          dotnet workload install maui-maccatalyst maui-ios maui-android
+
+      - name: Install MAUI workloads (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          dotnet workload install maui
+          dotnet workload install maui-windows
+        shell: pwsh
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build project (macOS)
+        if: runner.os == 'macOS'
+        run: dotnet build -f net8.0-maccatalyst -c Release
+
+      - name: Build project (Windows)
+        if: runner.os == 'Windows'
+        run: dotnet build -f net8.0-windows10.0.19041.0 -c Release
+        shell: pwsh
+
+  # -----------------------
+  # Release Build : build complet + artefacts
+  # -----------------------
+  build-release:
+    name: Build Release
+    runs-on: ${{ matrix.os }}
+    needs: build-pr
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        arch: [x64, arm64]  # pour macOS uniquement
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install MAUI workloads (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          dotnet workload install maui
+          dotnet workload install maui-maccatalyst maui-ios maui-android
+
+      - name: Install MAUI workloads (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          dotnet workload install maui
+          dotnet workload install maui-windows
+        shell: pwsh
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish MAUI app (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          dotnet publish -f net8.0-maccatalyst -c Release -p:RuntimeIdentifier=osx-${{ matrix.arch }} -o publish/
+          dotnet publish -f net8.0-android -c Release -o publish/
+          dotnet publish -f net8.0-ios -c Release -o publish/
+
+      - name: Publish MAUI app (Windows)
+        if: runner.os == 'Windows'
+        run: dotnet publish -f net8.0-windows10.0.19041.0 -c Release -o publish/
+        shell: pwsh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MauiApp-${{ runner.os }}-${{ matrix.arch }}
+          path: publish/
+
