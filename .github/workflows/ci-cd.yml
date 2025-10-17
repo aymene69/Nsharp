@@ -100,8 +100,6 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           dotnet publish -f net8.0-maccatalyst -c Release -o publish/
-          dotnet publish -f net8.0-android -c Release -o publish/
-          dotnet publish -f net8.0-ios -c Release -o publish/
 
       - name: Publish MAUI app (Windows)
         if: runner.os == 'Windows'
