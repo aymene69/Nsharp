@@ -134,6 +134,8 @@ namespace Nsharp
             });
         }
 
+        private bool _synScanWarningShown = false;
+
         private ScanResult ScanPort(int port)
         {
             var result = new ScanResult
@@ -152,7 +154,17 @@ namespace Nsharp
                 {
                     // SYN scan requires raw sockets (admin privileges)
                     // For simplicity, fall back to TCP connect
-                    Console.WriteLine("[!] SYN scan requires administrator privileges, using TCP connect instead");
+                    if (!_synScanWarningShown)
+                    {
+                        lock (_results)
+                        {
+                            if (!_synScanWarningShown)
+                            {
+                                Console.WriteLine("[!] SYN scan requires administrator privileges, using TCP connect instead");
+                                _synScanWarningShown = true;
+                            }
+                        }
+                    }
                     result.IsOpen = TCPConnectScan(port);
                 }
             }

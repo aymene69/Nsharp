@@ -106,7 +106,10 @@ namespace Nsharp
                 if (stream.DataAvailable)
                 {
                     int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    banner.Append(Encoding.ASCII.GetString(buffer, 0, bytesRead));
+                    if (bytesRead > 0)
+                    {
+                        banner.Append(Encoding.ASCII.GetString(buffer, 0, bytesRead));
+                    }
                 }
                 else
                 {
@@ -123,7 +126,10 @@ namespace Nsharp
                         if (stream.DataAvailable)
                         {
                             int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                            banner.Append(Encoding.ASCII.GetString(buffer, 0, bytesRead));
+                            if (bytesRead > 0)
+                            {
+                                banner.Append(Encoding.ASCII.GetString(buffer, 0, bytesRead));
+                            }
                         }
                     }
                 }
