@@ -1,0 +1,94 @@
+# ===========================
+# .NET MAUI / .NET projects
+# ===========================
+bin/
+obj/
+*.db
+*.log
+*.pid
+*.tmp
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ===========================
+# macOS system files
+# ===========================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# ===========================
+# Windows system files
+# ===========================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===========================
+# IDEs & editors
+# ===========================
+# JetBrains Rider / IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.dbmdl
+
+# Visual Studio Code
+.vscode/
+
+# ===========================
+# Build tools & caches
+# ===========================
+/packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+.nuget/
+*.nupkg
+*.nuspec
+
+# ===========================
+# Xamarin / MAUI related
+# ===========================
+*.apk
+*.aab
+*.ap_
+*.ipa
+*.app/
+*.app.dSYM/
+*.xcworkspace/
+*.xcodeproj/
+*.xcuserstate
+*.xcuserdatad
+*.xccheckout
+*.xcscheme
+*.xcscmblueprint
+*.xcsettings
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+
+# ===========================
+# Logs & analytics
+# ===========================
+*.log
+*.tlog
+
+# ===========================
+# Others
+# ===========================
+*.orig
+*.bak
+*.rej
+*.swp
+*.swo
+*.tmp
+
