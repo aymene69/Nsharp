@@ -3,9 +3,9 @@ using System.Net.Sockets;
 using System.Text;
 using System.Net.Http;
 using System.Net.NetworkInformation;
-using NsharpBlazor.Models;
+using Nsharp.Models;
 
-namespace NsharpBlazor.Services;
+namespace Nsharp.Services;
 
 public class NetworkScanner
 {

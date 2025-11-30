@@ -1,86 +1,89 @@
-# Nsharp Scanner - Version Blazor Server
+# Nsharp - Network Scanner
 
-Scanner réseau professionnel avec détection avancée de services et génération de rapports PDF.
+Un scanner réseau léger et rapide développé en .NET 8 avec une interface Blazor Server. Ce projet permet d'effectuer des scans de ports TCP, de détecter les services en cours d'exécution et de générer des rapports PDF, le tout sans dépendances externes lourdes.
 
-## 🚀 Lancement du projet
+## 🚀 Démarrage rapide
 
-### Méthode 1 : Avec dotnet CLI
+### Prérequis
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Docker](https://www.docker.com/) (optionnel)
+
+### Méthode 1 : Avec Docker (Recommandé)
+
 ```bash
-cd /Users/aymenebelmeguenai/NsharpBlazor
+# Construire l'image
+docker build -t nsharp .
+
+# Lancer le conteneur
+docker run -p 8080:8080 nsharp
+```
+L'application sera accessible sur **http://localhost:8080**
+
+### 💡 Conseil : Accès réseau complet (mode Host)
+
+Pour permettre au scanner d'accéder directement aux interfaces réseau de la machine hôte (idéal pour scanner le LAN ou `localhost` sans isolation), utilisez l'option `--network host` (recommandé sous Linux) :
+
+```bash
+docker run --network host nsharp
+```
+*Note : Sur macOS et Windows, le mode host fonctionne différemment. Pour scanner la machine hôte, utilisez la cible `host.docker.internal`.*
+
+### Méthode 2 : Avec dotnet CLI
+
+```bash
+# Clonez le dépôt
+git clone https://github.com/votre-user/Nsharp.git
+cd Nsharp
+
+# Lancez l'application
 dotnet run
 ```
+L'application sera accessible sur **http://localhost:5224**
 
-Puis ouvrez votre navigateur sur **http://localhost:5000**
-
-### Méthode 2 : Mode développement avec rechargement automatique
+Pour le développement avec rechargement à chaud (Hot Reload) :
 ```bash
-cd /Users/aymenebelmeguenai/NsharpBlazor
 dotnet watch run
 ```
 
 ## 📋 Fonctionnalités
 
-✅ **Scan réseau rapide** (TCP Connect + SYN scan si privilèges root)
-✅ **Détection avancée de services** (HTTP, HTTPS, SSH, FTP, SMTP, CUPS/IPP, etc.)
-✅ **Détection d'OS** basée sur TTL et services
-✅ **Interface moderne** adaptée au mode clair/sombre
-✅ **Export PDF** des résultats de scan
-✅ **Architecture Blazor Server** pour une expérience web réactive
+- **Scan de Ports TCP** : Scan rapide multi-threadé pour identifier les ports ouverts.
+- **Détection de Services** : Identification avancée des protocoles (HTTP, SSH, FTP, SMTP, DNS, etc.) via analyse des bannières et requêtes spécifiques.
+- **Détection d'OS** : Estimation du système d'exploitation basée sur le TTL (Time To Live).
+- **Rapport PDF** : Génération native de rapports PDF détaillés (sans librairie tierce).
+- **Interface Réactive** : UI moderne construite avec Blazor Server et Bootstrap.
+- **Mode Sombre/Clair** : Support natif du thème système.
 
-## 🛠️ Technologies
+## 🛠️ Architecture et Technologies
 
-- **.NET 8** - Framework principal
-- **Blazor Server** - Framework UI interactif
-- **SharpPcap** - Capture de paquets réseau
-- **PacketDotNet** - Manipulation de paquets TCP/IP
+Ce projet est conçu pour être minimaliste et autonome :
 
-## 📦 Structure du projet
+- **Framework** : .NET 8 (Blazor Server)
+- **Réseau** : `System.Net.Sockets` pour les connexions TCP brutes.
+- **PDF** : Générateur PDF personnalisé implémenté "from scratch" (aucune dépendance type iText ou QuestPDF).
+- **Interface** : Razor Components + CSS Scoped + Bootstrap.
+
+### Structure du projet
 
 ```
-NsharpBlazor/
-├── Components/
-│   └── Pages/
-│       └── Home.razor          # Interface principale
-├── Services/
-│   ├── NetworkScanner.cs       # Logique de scan
-│   ├── AdvancedServiceDetector.cs
-│   ├── SynScanner.cs
-│   └── PdfReportService.cs
-├── Models/
-│   ├── ScanResult.cs
-│   └── ScanResponse.cs
-├── wwwroot/
-│   └── app.css                 # Styles personnalisés
-└── Program.cs                  # Configuration Blazor
-
+Nsharp/
+├── Components/          # Composants UI Blazor
+│   ├── Pages/           # Pages (Home, etc.)
+│   └── Layout/          # Layouts (NavMenu, MainLayout)
+├── Services/            # Logique métier
+│   ├── NetworkScanner.cs           # Moteur de scan principal
+│   ├── AdvancedServiceDetector.cs  # Logique de fingerprinting des services
+│   └── PdfReportService.cs         # Générateur de PDF natif
+├── Models/              # Modèles de données (ScanResult, etc.)
+└── wwwroot/             # Ressources statiques (CSS, JS)
 ```
 
 ## 🔧 Configuration
 
-Pour utiliser le scan SYN (plus rapide), exécutez avec les privilèges root/admin :
-```bash
-sudo dotnet run
-```
+Le scanner est configuré pour être performant par défaut :
+- **Concurrence** : Scanne plusieurs ports en parallèle pour plus de rapidité.
+- **Timeouts** : Délais ajustés pour éviter les blocages sur les ports filtrés.
 
-Sinon, le scanner utilisera automatiquement un fallback TCP Connect.
+## 📄 Rapports
 
-## 📄 Export PDF
-
-Les PDFs générés sont sauvegardés dans : `/tmp/scan_report_YYYYMMDD_HHMMSS.pdf`
-
-## 🎨 Interface
-
-- **Panel gauche** : Configuration du scan (cible, ports, options)
-- **Panel droit** : Résultats détaillés avec informations de service
-- **Thème adaptatif** : S'adapte automatiquement au mode clair/sombre du système
-
-## ⚠️ Notes importantes
-
-- Le scan SYN nécessite des privilèges élevés (root/admin)
-- Le scan peut prendre du temps selon le nombre de ports
-- Les PDFs sont générés côté serveur
-
----
-
-**Développé avec ❤️ en .NET 8 + Blazor Server**
-
+Les rapports PDF générés sont stockés temporairement sur le serveur (dans le dossier temporaire du système) et peuvent être téléchargés directement depuis l'interface après un scan.

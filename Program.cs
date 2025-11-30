@@ -1,5 +1,5 @@
-using NsharpBlazor.Components;
-using NsharpBlazor.Services;
+using Nsharp.Components;
+using Nsharp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

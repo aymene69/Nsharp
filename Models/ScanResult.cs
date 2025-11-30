@@ -1,4 +1,4 @@
-namespace NsharpBlazor.Models;
+namespace Nsharp.Models;
 
 public class ScanResult
 {

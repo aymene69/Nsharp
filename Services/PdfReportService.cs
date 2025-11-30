@@ -1,7 +1,7 @@
 using System.Text;
-using NsharpBlazor.Models;
+using Nsharp.Models;
 
-namespace NsharpBlazor.Services;
+namespace Nsharp.Services;
 
 public class PdfReportService
 {
