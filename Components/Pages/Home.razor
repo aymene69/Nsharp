@@ -1,0 +1,218 @@
+﻿@page "/"
+@using NsharpBlazor.Models
+@using NsharpBlazor.Services
+@inject NetworkScanner NetworkScanner
+@inject PdfReportService PdfService
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Nsharp - Scanner Réseau</PageTitle>
+
+<div class="scanner-container">
+    <div class="config-panel">
+        <h3 class="section-title">Configuration du scan</h3>
+        
+        <div class="form-group">
+            <label>Cible (IP ou CIDR)</label>
+            <input @bind="targetAddress" class="form-input" placeholder="192.168.1.1" />
+        </div>
+        
+        <div class="form-group">
+            <label>Ports à scanner</label>
+            <input @bind="portsToScan" class="form-input" placeholder="22,80,443 ou 1-1000" />
+            <small>Laissez vide pour scanner les ports communs</small>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" @bind="verboseMode" />
+                Mode verbeux
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" @bind="aggressiveMode" />
+                Mode agressif (détection OS)
+            </label>
+        </div>
+        
+        <button @onclick="StartScan" disabled="@isScanning" class="btn btn-primary">
+            @if (isScanning)
+            {
+                <span>Scan en cours...</span>
+            }
+            else
+            {
+                <span>Démarrer le scan</span>
+            }
+        </button>
+        
+        @if (scanResults.Count > 0)
+        {
+            <button @onclick="ExportPdf" class="btn btn-secondary">
+                Exporter PDF
+            </button>
+        }
+        
+        @if (!string.IsNullOrEmpty(statusMessage))
+        {
+            <div class="status-message @statusClass">
+                @statusMessage
+            </div>
+        }
+        
+        @if (!string.IsNullOrEmpty(osDetection))
+        {
+            <div class="os-detection">
+                <strong>Système détecté:</strong> @osDetection
+            </div>
+        }
+    </div>
+    
+    <div class="results-panel">
+        <h3 class="section-title">Résultats du scan</h3>
+        
+        @if (scanResults.Count == 0 && !isScanning)
+        {
+            <div class="no-results">
+                <p>Aucun résultat pour le moment</p>
+                <p><small>Configurez un scan et cliquez sur "Démarrer"</small></p>
+            </div>
+        }
+        else if (isScanning)
+        {
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Scan en cours, veuillez patienter...</p>
+            </div>
+        }
+        else
+        {
+            <div class="summary">
+                <strong>@scanResults.Count port(s) ouvert(s) détecté(s)</strong>
+            </div>
+            
+            <div class="results-list">
+                @foreach (var result in scanResults)
+                {
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="port-info">
+                                <span class="port-number">Port @result.Port</span>
+                                <span class="service-name">@result.Service</span>
+                            </div>
+                            <span class="status-badge">@result.Status</span>
+                        </div>
+                        
+                        <div class="result-body">
+                            <div class="info-section">
+                                <strong>Protocole</strong>
+                                <p>@result.Protocol</p>
+                            </div>
+                            
+                            <div class="info-section">
+                                <strong>Détails</strong>
+                                <p class="details-text">@result.Details</p>
+                            </div>
+                            
+                            <div class="info-section">
+                                <strong>État</strong>
+                                <p>@result.StateDescription</p>
+                            </div>
+                            
+                            <div class="info-section advice-section">
+                                <strong>Recommandation</strong>
+                                <p>@result.Advice</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string targetAddress = "";
+    private string portsToScan = "";
+    private bool verboseMode = false;
+    private bool aggressiveMode = false;
+    private bool isScanning = false;
+    private string statusMessage = "";
+    private string statusClass = "";
+    private string osDetection = "";
+    private List<ScanResult> scanResults = new();
+
+    private async Task StartScan()
+    {
+        if (string.IsNullOrWhiteSpace(targetAddress))
+        {
+            statusMessage = "Veuillez saisir une adresse IP ou CIDR";
+            statusClass = "error";
+            return;
+        }
+
+        isScanning = true;
+        statusMessage = "Scan en cours...";
+        statusClass = "info";
+        scanResults.Clear();
+        osDetection = "";
+
+        try
+        {
+            var response = await NetworkScanner.ScanAsync(
+                targetAddress,
+                portsToScan,
+                verboseMode,
+                aggressiveMode
+            );
+
+            scanResults = response.Results;
+            osDetection = response.OsDetection ?? "";
+
+            if (scanResults.Count > 0)
+            {
+                statusMessage = $"Scan terminé avec succès - {scanResults.Count} port(s) ouvert(s)";
+                statusClass = "success";
+            }
+            else
+            {
+                statusMessage = "Scan terminé - Aucun port ouvert détecté";
+                statusClass = "warning";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Erreur lors du scan: {ex.Message}";
+            statusClass = "error";
+        }
+        finally
+        {
+            isScanning = false;
+        }
+    }
+
+    private async Task ExportPdf()
+    {
+        try
+        {
+            statusMessage = "Génération du PDF...";
+            statusClass = "info";
+
+            var pdfPath = await PdfService.GenerateReportAsync(scanResults, targetAddress, osDetection);
+            var fileBytes = await File.ReadAllBytesAsync(pdfPath);
+            var fileName = Path.GetFileName(pdfPath);
+
+            await JS.InvokeVoidAsync("downloadFile", fileName, Convert.ToBase64String(fileBytes));
+
+            statusMessage = "PDF téléchargé avec succès";
+            statusClass = "success";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Erreur lors de l'export: {ex.Message}";
+            statusClass = "error";
+        }
+    }
+}
