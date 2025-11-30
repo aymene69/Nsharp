@@ -1,0 +1,86 @@
+@page "/settings"
+@using Nsharp.Services
+@inject SettingsService SettingsService
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Nsharp - Préférences</PageTitle>
+
+<div class="settings-container">
+    <div class="settings-panel">
+        <h3 class="section-title">Préférences IA</h3>
+        
+        <div class="settings-form">
+            <div class="form-group">
+                <label>Clé API (OpenAI / DeepSeek)</label>
+                <div class="input-group">
+                    <input type="@inputType" @bind="apiKey" class="form-input" placeholder="sk-..." />
+                    <button class="btn-icon" @onclick="ToggleVisibility">
+                        @(isVisible ? "👁️" : "🔒")
+                    </button>
+                </div>
+                <small>Clé utilisée pour l'analyse des vulnérabilités. Stockée localement.</small>
+            </div>
+            
+            <div class="form-group">
+                <label>Modèle IA</label>
+                <select @bind="aiModel" class="form-input">
+                    <option value="deepseek-chat">DeepSeek Chat (Recommandé)</option>
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                </select>
+            </div>
+            
+            <button @onclick="SaveSettings" class="btn btn-primary">
+                Sauvegarder les préférences
+            </button>
+            
+            @if (!string.IsNullOrEmpty(message))
+            {
+                <div class="status-message @messageClass">
+                    @message
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string apiKey = "";
+    private string aiModel = "deepseek-chat";
+    private string message = "";
+    private string messageClass = "";
+    private bool isVisible = false;
+    private string inputType => isVisible ? "text" : "password";
+
+    protected override void OnInitialized()
+    {
+        var settings = SettingsService.GetSettings();
+        apiKey = settings.AiApiKey;
+        if (!string.IsNullOrEmpty(settings.AiModel))
+        {
+            aiModel = settings.AiModel;
+        }
+    }
+
+    private void ToggleVisibility()
+    {
+        isVisible = !isVisible;
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            SettingsService.SaveSettings(apiKey, aiModel);
+            message = "Préférences sauvegardées avec succès !";
+            messageClass = "success";
+        }
+        catch (Exception ex)
+        {
+            message = $"Erreur lors de la sauvegarde : {ex.Message}";
+            messageClass = "error";
+        }
+    }
+}
+

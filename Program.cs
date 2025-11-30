@@ -7,7 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Enregistrer HttpClient pour le service d'IA
+builder.Services.AddHttpClient<AiAnalysisService>();
+
 // Enregistrer les services personnalisés
+builder.Services.AddSingleton<SettingsService>();
+builder.Services.AddSingleton<PortServiceLookup>(); // Chargement de la DB nmap
 builder.Services.AddSingleton<NetworkScanner>();
 builder.Services.AddSingleton<PdfReportService>();
 

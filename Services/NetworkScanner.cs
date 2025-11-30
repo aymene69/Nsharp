@@ -12,10 +12,12 @@ public class NetworkScanner
     private const int MaxConcurrentScans = 100;
     private const int ConnectTimeoutMs = 2000;
     private readonly AdvancedServiceDetector _advancedDetector;
+    private readonly PortServiceLookup _portLookup;
     
-    public NetworkScanner()
+    public NetworkScanner(PortServiceLookup portLookup)
     {
         _advancedDetector = new AdvancedServiceDetector();
+        _portLookup = portLookup;
     }
 
     public async Task<ScanResponse> ScanAsync(string target, string? ports, bool verbose, bool aggressive)
@@ -34,15 +36,35 @@ public class NetworkScanner
             { 
                 Port = p, 
                 IsOpen = true, 
-                Service = "" 
+                // Pré-remplir avec le nom standard NMAP
+                Service = _portLookup.GetServiceName(p, "tcp")
             }).ToList();
 
             foreach (var port in openPorts.OrderBy(p => p.Port))
             {
                 var fingerprint = await _advancedDetector.DetectServiceAdvanced(target, port.Port);
                 
+                // Si la détection avancée échoue ou est générique, on garde le nom NMAP
+                var finalServiceName = fingerprint.ServiceName;
+                
+                // Critères élargis pour utiliser le nom NMAP
+                if (string.IsNullOrEmpty(finalServiceName) || 
+                    finalServiceName == "Inconnu" || 
+                    finalServiceName.Contains("Service TCP actif") || 
+                    finalServiceName.Contains("Service inconnu") ||
+                    finalServiceName.Contains("probablement"))
+                {
+                    // Utiliser le nom du fichier nmap-services si la détection active n'a rien trouvé de mieux
+                    var nmapName = _portLookup.GetServiceName(port.Port, "tcp");
+                    if (nmapName != "unknown")
+                    {
+                        finalServiceName = nmapName;
+                        fingerprint.ServiceName = nmapName; // MAJ pour cohérence
+                    }
+                }
+
                 var detailsBuilder = new StringBuilder();
-                detailsBuilder.AppendLine($"Service detecte : {fingerprint.ServiceName}");
+                detailsBuilder.AppendLine($"Service détecté : {finalServiceName}");
                 detailsBuilder.AppendLine($"Confiance : {fingerprint.Confidence}%");
                 detailsBuilder.AppendLine();
                 detailsBuilder.AppendLine(fingerprint.Details);
@@ -50,7 +72,7 @@ public class NetworkScanner
                 if (fingerprint.DetectionMethods.Count > 0)
                 {
                     detailsBuilder.AppendLine();
-                    detailsBuilder.AppendLine("Methodes de detection utilisees :");
+                    detailsBuilder.AppendLine("Méthodes de détection utilisées :");
                     foreach (var method in fingerprint.DetectionMethods.Take(3))
                     {
                         detailsBuilder.AppendLine($"- {method}");
@@ -60,7 +82,7 @@ public class NetworkScanner
                 var scanResult = new ScanResult
                 {
                     Port = port.Port,
-                    Service = fingerprint.ServiceName,
+                    Service = finalServiceName,
                     Details = detailsBuilder.ToString().TrimEnd(),
                     Protocol = DetermineProtocol(fingerprint),
                     Status = "OUVERT",
@@ -150,11 +172,11 @@ public class NetworkScanner
         
         if (fingerprint.Confidence >= 80)
         {
-            desc.Append($" - Service {fingerprint.ServiceName} identifie avec haute confiance");
+            desc.Append($" - Service {fingerprint.ServiceName} identifié avec haute confiance");
         }
         else if (fingerprint.Confidence >= 50)
         {
-            desc.Append($" - Service {fingerprint.ServiceName} identifie avec confiance moyenne");
+            desc.Append($" - Service {fingerprint.ServiceName} identifié avec confiance moyenne");
         }
         else if (fingerprint.TcpConnectable)
         {
@@ -163,7 +185,7 @@ public class NetworkScanner
         
         if (fingerprint.ConnectionTimeMs > 0)
         {
-            desc.Append($" (temps de reponse: {fingerprint.ConnectionTimeMs:F0}ms)");
+            desc.Append($" (temps de réponse: {fingerprint.ConnectionTimeMs:F0}ms)");
         }
         
         return desc.ToString();
@@ -235,6 +257,9 @@ public class NetworkScanner
     {
         if (string.IsNullOrWhiteSpace(ports))
         {
+            // Liste par défaut "Top ports" si aucun port spécifié
+            // On pourrait aussi utiliser le top 100 du fichier nmap-services si on voulait être vraiment pro
+            // Mais pour l'instant on garde une liste hardcodée propre et rapide
             return new List<int> { 21, 22, 23, 25, 53, 80, 110, 143, 443, 445, 3306, 3389, 5432, 8080, 8443 };
         }
 
