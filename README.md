@@ -47,7 +47,7 @@ dotnet watch run
 
 ## 📋 Fonctionnalités
 
-- **Scan de Ports TCP** : Scan rapide multi-threadé pour identifier les ports ouverts.
+- **Scan de Ports TCP** : Scan rapide multi-threadé pour identifier les ports ouverts (support UDP à venir).
 - **Détection de Services** : Identification avancée des protocoles (HTTP, SSH, FTP, SMTP, DNS, etc.) via analyse des bannières et requêtes spécifiques.
 - **Détection d'OS** : Estimation du système d'exploitation basée sur le TTL (Time To Live).
 - **Rapport PDF** : Génération native de rapports PDF détaillés (sans librairie tierce).

@@ -86,145 +86,110 @@ public class PdfReportService
         var sb = new StringBuilder();
         sb.AppendLine("BT");
         
-        sb.AppendLine("0 0 1 rg");
+        // En-tête
+        sb.AppendLine("0 0 1 rg"); // Bleu
         sb.AppendLine("/F1 24 Tf");
-        sb.AppendLine("80 800 Td");
-        sb.AppendLine("(RAPPORT DE SCAN RESEAU) Tj");
+        sb.AppendLine("50 800 Td");
+        sb.AppendLine("(RAPPORT D'AUDIT NSHARP) Tj");
         
-        sb.AppendLine("0 -35 Td");
-        sb.AppendLine("0.4 0.4 0.4 rg");
-        sb.AppendLine("/F2 11 Tf");
-        sb.AppendLine("(Analyse de securite reseau - Nsharp Scanner v1.0) Tj");
+        sb.AppendLine("0 -25 Td");
+        sb.AppendLine("0.3 0.3 0.3 rg"); // Gris foncé
+        sb.AppendLine("/F2 10 Tf");
+        sb.AppendLine("(Analyse de securite automatisee et intelligence artificielle) Tj");
         
         sb.AppendLine("0 -40 Td");
-        sb.AppendLine("0 0 0 rg");
+        sb.AppendLine("0 0 0 rg"); // Noir
         sb.AppendLine("/F1 14 Tf");
-        sb.AppendLine("(___________________________________________________________) Tj");
-        
-        sb.AppendLine("0 -30 Td");
-        sb.AppendLine("0 0 1 rg");
-        sb.AppendLine("/F1 14 Tf");
-        sb.AppendLine("(INFORMATIONS DU SCAN) Tj");
+        sb.AppendLine("(CIBLE DE L'AUDIT) Tj");
         
         sb.AppendLine("0 -20 Td");
-        sb.AppendLine("0 0 0 rg");
-        sb.AppendLine("/F2 10 Tf");
-        sb.AppendLine($"(  Cible scannee       : {Clean(target)}) Tj");
+        sb.AppendLine("/F2 11 Tf");
+        sb.AppendLine($"(IP Cible : {Clean(target)}) Tj");
         
-        sb.AppendLine("0 -14 Td");
-        sb.AppendLine($"(  Date du scan        : {DateTime.Now:yyyy-MM-dd HH:mm:ss}) Tj");
-        
-        sb.AppendLine("0 -14 Td");
-        sb.AppendLine($"(  Genere par          : Nsharp Scanner) Tj");
+        sb.AppendLine("0 -15 Td");
+        sb.AppendLine($"(Date     : {DateTime.Now:yyyy-MM-dd HH:mm:ss}) Tj");
         
         if (!string.IsNullOrEmpty(osDetection))
         {
-            sb.AppendLine("0 -14 Td");
-            sb.AppendLine("0 0.5 0 rg");
-            sb.AppendLine($"(  OS detecte          : {Clean(osDetection)}) Tj");
-            sb.AppendLine("0 0 0 rg");
+            sb.AppendLine("0 -15 Td");
+            sb.AppendLine($"(OS       : {Clean(osDetection)}) Tj");
         }
         
-        sb.AppendLine("0 -30 Td");
-        sb.AppendLine("0 0 1 rg");
+        sb.AppendLine("0 -40 Td");
+        sb.AppendLine("0 0.4 0.8 rg"); // Bleu clair
         sb.AppendLine("/F1 14 Tf");
-        sb.AppendLine("(RESUME) Tj");
-        
-        sb.AppendLine("0 -20 Td");
+        sb.AppendLine("(RESULTATS DETAILLES) Tj");
         sb.AppendLine("0 0 0 rg");
-        sb.AppendLine("/F1 11 Tf");
-        if (scanResults.Count > 0)
-        {
-            sb.AppendLine("0 0.5 0 rg");
-            sb.AppendLine($"(  {scanResults.Count} port\\(s\\) ouvert\\(s\\) detecte\\(s\\)) Tj");
-        }
-        else
-        {
-            sb.AppendLine("0.7 0 0 rg");
-            sb.AppendLine("(  Aucun port ouvert detecte) Tj");
-        }
-        
-        sb.AppendLine("0 -30 Td");
-        sb.AppendLine("0 0 1 rg");
-        sb.AppendLine("/F1 14 Tf");
-        sb.AppendLine("(PORTS OUVERTS DETAILLES) Tj");
-        sb.AppendLine("0 0 0 rg");
-        
+
         if (scanResults.Count == 0)
         {
-            sb.AppendLine("0 -20 Td");
-            sb.AppendLine("0.5 0.5 0.5 rg");
-            sb.AppendLine("/F2 10 Tf");
-            sb.AppendLine("(  Aucun port ouvert n'a ete detecte lors du scan.) Tj");
-            sb.AppendLine("0 -12 Td");
-            sb.AppendLine("(  Verifiez la cible et les ports specifies.) Tj");
+            sb.AppendLine("0 -30 Td");
+            sb.AppendLine("/F2 11 Tf");
+            sb.AppendLine("(Aucune vulnerabilite ou port ouvert detecte.) Tj");
         }
         else
         {
-            var maxPorts = Math.Min(scanResults.Count, 8);
+            var maxPorts = Math.Min(scanResults.Count, 6); // Max 6 ports pour tenir sur une page simple (limitation PDF brut)
             for (int i = 0; i < maxPorts; i++)
             {
                 var r = scanResults[i];
                 
-                sb.AppendLine("0 -25 Td");
-                sb.AppendLine("0 0 1 rg");
+                sb.AppendLine("0 -35 Td");
+                
+                // Port header
+                sb.AppendLine("0 0 0.5 rg"); // Bleu foncé
                 sb.AppendLine("/F1 12 Tf");
-                sb.AppendLine($"(Port {r.Port}  |  {Clean(r.Service)}) Tj");
+                sb.AppendLine($"(PORT {r.Port} - {Clean(r.Service).ToUpper()}) Tj");
                 
-                sb.AppendLine("0 -16 Td");
-                sb.AppendLine("0 0 0 rg");
-                sb.AppendLine("/F1 9 Tf");
-                sb.AppendLine("(  Protocole :) Tj");
-                sb.AppendLine("0 -11 Td");
+                // Status badge simulation
+                sb.AppendLine("200 0 Td");
+                sb.AppendLine("0 0.6 0 rg"); // Vert
+                sb.AppendLine("/F2 10 Tf");
+                sb.AppendLine("(OUVERT) Tj");
+                sb.AppendLine("-200 0 Td"); // Reset X
+
+                // Détails
+                sb.AppendLine("0 -15 Td");
+                sb.AppendLine("0 0 0 rg"); // Noir
                 sb.AppendLine("/F2 9 Tf");
-                sb.AppendLine($"(    {Clean(r.Protocol)}) Tj");
+                sb.AppendLine($"(Protocole: {Clean(r.Protocol)}) Tj");
                 
-                sb.AppendLine("0 -13 Td");
-                sb.AppendLine("/F1 9 Tf");
-                sb.AppendLine("(  Details :) Tj");
+                // Analyse IA ou Conseil
+                sb.AppendLine("0 -15 Td");
+                sb.AppendLine("0.8 0.2 0.2 rg"); // Rouge brique
+                sb.AppendLine("/F1 10 Tf");
+                sb.AppendLine("(ANALYSE DE SECURITE & EXPLOITATION :) Tj");
+                sb.AppendLine("0 0 0 rg"); // Noir
+
+                var explanationText = !string.IsNullOrEmpty(r.AiExplanation) ? r.AiExplanation : r.Advice;
+                // Nettoyage emojis pour PDF simple
+                explanationText = CleanEmojis(explanationText);
                 
-                var detailLines = WrapText(r.Details, 75);
-                foreach (var line in detailLines.Take(3))
+                var lines = WrapText(explanationText, 85);
+                var maxLines = Math.Min(lines.Count, 5); // Limiter à 5 lignes pour la mise en page
+                
+                foreach (var line in lines.Take(maxLines))
                 {
-                    sb.AppendLine("0 -11 Td");
-                    sb.AppendLine("/F2 8 Tf");
-                    sb.AppendLine($"(    {Clean(line)}) Tj");
+                    sb.AppendLine("0 -12 Td");
+                    sb.AppendLine("/F2 9 Tf");
+                    sb.AppendLine($"({Clean(line)}) Tj");
                 }
                 
-                sb.AppendLine("0 -13 Td");
-                sb.AppendLine("0.8 0.4 0 rg");
-                sb.AppendLine("/F1 9 Tf");
-                sb.AppendLine("(  Recommandation :) Tj");
-                sb.AppendLine("0 0 0 rg");
-                
-                var adviceLines = WrapText(r.Advice, 75);
-                foreach (var line in adviceLines.Take(2))
-                {
-                    sb.AppendLine("0 -11 Td");
-                    sb.AppendLine("/F2 8 Tf");
-                    sb.AppendLine($"(    {Clean(line)}) Tj");
-                }
-                
-                sb.AppendLine("0 -8 Td");
-                sb.AppendLine("0.7 0.7 0.7 rg");
+                // Séparateur
+                sb.AppendLine("0 -10 Td");
+                sb.AppendLine("0.8 0.8 0.8 rg");
                 sb.AppendLine("/F2 8 Tf");
-                sb.AppendLine("(  -------------------------------------------------------) Tj");
-                sb.AppendLine("0 0 0 rg");
+                sb.AppendLine("(____________________________________________________________________________________) Tj");
             }
             
             if (scanResults.Count > maxPorts)
             {
-                sb.AppendLine("0 -18 Td");
+                sb.AppendLine("0 -30 Td");
                 sb.AppendLine("0.5 0.5 0.5 rg");
-                sb.AppendLine("/F2 9 Tf");
-                sb.AppendLine($"(  ... et {scanResults.Count - maxPorts} autre\\(s\\) port\\(s\\) ouvert\\(s\\)) Tj");
+                sb.AppendLine("/F2 10 Tf");
+                sb.AppendLine($"(... et {scanResults.Count - maxPorts} autres ports non affiches sur cette page de synthese.) Tj");
             }
         }
-        
-        sb.AppendLine("0 -30 Td");
-        sb.AppendLine("0.5 0.5 0.5 rg");
-        sb.AppendLine("/F2 8 Tf");
-        sb.AppendLine($"(Rapport genere le {DateTime.Now:dd/MM/yyyy} a {DateTime.Now:HH:mm:ss}) Tj");
         
         sb.AppendLine("ET");
         return sb.ToString();
@@ -233,6 +198,19 @@ public class PdfReportService
     private string Clean(string text)
     {
         if (string.IsNullOrEmpty(text)) return "";
+        
+        // Remplacement des caractères accentués basiques pour Latin1
+        text = text
+            .Replace("é", "e")
+            .Replace("è", "e")
+            .Replace("ê", "e")
+            .Replace("à", "a")
+            .Replace("ç", "c")
+            .Replace("ù", "u")
+            .Replace("î", "i")
+            .Replace("ï", "i")
+            .Replace("ô", "o");
+
         return text
             .Replace("\\", "\\\\")
             .Replace("(", "\\(")
@@ -240,6 +218,14 @@ public class PdfReportService
             .Replace("\r", "")
             .Replace("\n", " ")
             .Replace("\t", " ");
+    }
+    
+    private string CleanEmojis(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        // Suppression basique des caractères hors plage ASCII imprimable étendu
+        // Pour un PDF brut sans font unicode, c'est le plus sûr
+        return new string(text.Where(c => c < 255).ToArray());
     }
 
     private List<string> WrapText(string text, int maxChars)
@@ -271,4 +257,3 @@ public class PdfReportService
         return lines;
     }
 }
-

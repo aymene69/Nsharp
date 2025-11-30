@@ -3,11 +3,23 @@
 @using Nsharp.Services
 @inject NetworkScanner NetworkScanner
 @inject PdfReportService PdfService
+@inject AiAnalysisService AiService
+@inject SettingsService SettingsService
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Nsharp - Scanner Réseau</PageTitle>
 
+@if (!string.IsNullOrEmpty(initError))
+{
+    <div class="alert alert-danger m-4">
+        <strong>Erreur critique au chargement :</strong> @initError
+        <br/>
+        <small>Vérifiez les logs console du serveur pour plus de détails.</small>
+    </div>
+}
+else
+{
 <div class="scanner-container">
     <div class="config-panel">
         <h3 class="section-title">Configuration du scan</h3>
@@ -40,7 +52,8 @@
         <button @onclick="StartScan" disabled="@isScanning" class="btn btn-primary">
             @if (isScanning)
             {
-                <span>Scan en cours...</span>
+                <span class="spinner-small"></span>
+                <span>@scanningStatus</span>
             }
             else
             {
@@ -48,7 +61,7 @@
             }
         </button>
         
-        @if (scanResults.Count > 0)
+        @if (scanResults.Count > 0 && !isScanning)
         {
             <button @onclick="ExportPdf" class="btn btn-secondary">
                 Exporter PDF
@@ -58,6 +71,10 @@
         @if (!string.IsNullOrEmpty(statusMessage))
         {
             <div class="status-message @statusClass">
+                @if (isScanning && statusClass == "info")
+                {
+                   <span class="spinner-small-blue"></span>
+                }
                 @statusMessage
             </div>
         }
@@ -80,7 +97,7 @@
                 <p><small>Configurez un scan et cliquez sur "Démarrer"</small></p>
             </div>
         }
-        else if (isScanning)
+        else if (isScanning && scanResults.Count == 0)
         {
             <div class="loading">
                 <div class="spinner"></div>
@@ -91,6 +108,9 @@
         {
             <div class="summary">
                 <strong>@scanResults.Count port(s) ouvert(s) détecté(s)</strong>
+                @if (isScanning) {
+                    <span class="scanning-badge">Analyse IA en cours...</span>
+                }
             </div>
             
             <div class="results-list">
@@ -106,25 +126,46 @@
                         </div>
                         
                         <div class="result-body">
-                            <div class="info-section">
-                                <strong>Protocole</strong>
-                                <p>@result.Protocol</p>
+                            <div class="info-grid">
+                                <div class="info-section">
+                                    <strong>Protocole</strong>
+                                    <p>@result.Protocol</p>
+                                </div>
+                                <div class="info-section">
+                                    <strong>État</strong>
+                                    <p>@result.StateDescription</p>
+                                </div>
                             </div>
                             
-                            <div class="info-section">
-                                <strong>Détails</strong>
-                                <p class="details-text">@result.Details</p>
+                            <div class="info-section details-section">
+                                <strong>Détails Techniques</strong>
+                                <div class="details-content">
+                                    @result.Details
+                                </div>
                             </div>
                             
-                            <div class="info-section">
-                                <strong>État</strong>
-                                <p>@result.StateDescription</p>
-                            </div>
-                            
-                            <div class="info-section advice-section">
-                                <strong>Recommandation</strong>
-                                <p>@result.Advice</p>
-                            </div>
+                            @if (!string.IsNullOrEmpty(result.AiExplanation))
+                            {
+                                <div class="info-section ai-section">
+                                    <strong><span class="icon">🛡️</span> Audit & Exploitation (IA)</strong>
+                                    <div class="ai-text">
+                                        @((MarkupString)result.AiExplanation.Replace("\n", "<br/>"))
+                                    </div>
+                                </div>
+                            }
+                            else if (isScanning && AiService.HasApiKey())
+                            {
+                                <div class="info-section ai-loading">
+                                    <span class="spinner-tiny"></span> Analyse IA en cours...
+                                </div>
+                            }
+                            else if (!AiService.HasApiKey() && !isScanning)
+                            {
+                                 <div class="info-section advice-section">
+                                    <strong>Note</strong>
+                                    <p>Configurez votre clé API dans les <a href="settings">Préférences</a> pour activer l'analyse IA des vulnérabilités.</p>
+                                </div>
+                            }
                         </div>
                     </div>
                 }
@@ -132,6 +173,7 @@
         }
     </div>
 </div>
+}
 
 @code {
     private string targetAddress = "";
@@ -139,10 +181,29 @@
     private bool verboseMode = false;
     private bool aggressiveMode = false;
     private bool isScanning = false;
+    private string scanningStatus = "Scan en cours...";
     private string statusMessage = "";
     private string statusClass = "";
     private string osDetection = "";
+    private string initError = "";
     private List<ScanResult> scanResults = new();
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            // Vérification de base pour s'assurer que les services sont injectés
+            if (SettingsService == null || AiService == null || NetworkScanner == null)
+            {
+                throw new Exception("Un ou plusieurs services n'ont pas pu être injectés.");
+            }
+        }
+        catch (Exception ex)
+        {
+            initError = ex.Message;
+            Console.WriteLine($"Critical Error in Home.razor: {ex}");
+        }
+    }
 
     private async Task StartScan()
     {
@@ -154,6 +215,7 @@
         }
 
         isScanning = true;
+        scanningStatus = "Scan en cours...";
         statusMessage = "Scan en cours...";
         statusClass = "info";
         scanResults.Clear();
@@ -161,6 +223,7 @@
 
         try
         {
+            // Étape 1 : Scan Réseau
             var response = await NetworkScanner.ScanAsync(
                 targetAddress,
                 portsToScan,
@@ -171,10 +234,25 @@
             scanResults = response.Results;
             osDetection = response.OsDetection ?? "";
 
+            // Étape 2 : Analyse IA si des ports sont trouvés et clé API présente
             if (scanResults.Count > 0)
             {
-                statusMessage = $"Scan terminé avec succès - {scanResults.Count} port(s) ouvert(s)";
-                statusClass = "success";
+                if (AiService.HasApiKey())
+                {
+                    scanningStatus = "Analyse IA...";
+                    statusMessage = "Analyse des services par l'IA...";
+                    StateHasChanged(); 
+                    
+                    await AiService.EnrichScanResultsAsync(scanResults);
+                    
+                    statusMessage = $"Scan terminé avec succès - {scanResults.Count} port(s) ouvert(s) + Analyse IA";
+                    statusClass = "success";
+                }
+                else
+                {
+                    statusMessage = $"Scan terminé - {scanResults.Count} port(s) ouvert(s). Configurez l'IA pour plus de détails.";
+                    statusClass = "success";
+                }
             }
             else
             {
