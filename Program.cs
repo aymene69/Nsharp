@@ -22,6 +22,8 @@ try
     builder.Services.AddSingleton<PortServiceLookup>(); // Chargement de la DB nmap
     builder.Services.AddSingleton<NetworkScanner>();
     builder.Services.AddSingleton<PdfReportService>();
+    builder.Services.AddSingleton<HistoryService>(); // Service d'historique des scans
+
 }
 catch (Exception ex)
 {

@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Data.Sqlite;
+using Nsharp.Models;
 using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using System.Net.Http;
 using System.Net.NetworkInformation;
-using Nsharp.Models;
+using System.Net.Sockets;
+using System.Text;
 
 namespace Nsharp.Services;
 
@@ -24,6 +26,34 @@ public class NetworkScanner
     public async Task<ScanResponse> ScanAsync(string target, string? ports, bool verbose, bool aggressive)
     {
         var response = new ScanResponse();
+
+        using var conn = new SqliteConnection("Data Source=scans.sqlite");
+        conn.Open();
+
+        var createTable = conn.CreateCommand();
+
+        // On créé 2 table 1 pour l'ensemble des informations d'un scan et l'autre pour faire une corrélation entre le scan et l'OS detecté
+        createTable.CommandText = @"
+        CREATE TABLE IF NOT EXISTS ScanGroups (
+            GroupScanId INTEGER PRIMARY KEY,
+            OS TEXT DEFAULT 'Aucun'
+        );
+
+        CREATE TABLE IF NOT EXISTS ScanResults (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            GroupScanId INTEGER,
+            Target TEXT,
+            Port INTEGER,
+            Service TEXT,
+            Protocol TEXT,
+            Status TEXT
+        );
+        ";
+        createTable.ExecuteNonQuery();
+
+        // génération d'un ID de groupe pour ce scan (nous permettera de faire un groupement plus tard)
+        var groupScanId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         try
         {
@@ -93,7 +123,27 @@ public class NetworkScanner
                     StateDescription = GenerateStateDescription(fingerprint),
                     Advice = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris."
                 };
-                
+
+                // On prépare la commande pour inserer les valeurs
+                var insertTable = conn.CreateCommand();
+                insertTable.CommandText =
+                @"
+                INSERT INTO ScanResults 
+                (GroupScanID, Target, Port, Service, Protocol, Status)
+                VALUES ($groupId, $t, $p, $s, $proto, $status);
+                ";
+
+                // Insertion des valeurs dans la table ScanResults
+                insertTable.Parameters.AddWithValue("$groupId", groupScanId);
+                insertTable.Parameters.AddWithValue("$t", target);
+                insertTable.Parameters.AddWithValue("$p", scanResult.Port);
+                insertTable.Parameters.AddWithValue("$s", scanResult.Service);
+                insertTable.Parameters.AddWithValue("$proto", scanResult.Protocol);
+                insertTable.Parameters.AddWithValue("$status", scanResult.Status);
+
+                insertTable.ExecuteNonQuery(); // Exécution de la requête
+
+
                 response.Results.Add(scanResult);
             }
 
@@ -108,6 +158,17 @@ public class NetworkScanner
                     response.OsDetection = null;
                 }
             }
+
+            // Insertion des valeurs dans la table ScanResults
+            var insertGroup = conn.CreateCommand();
+            insertGroup.CommandText = @"
+                INSERT INTO ScanGroups (GroupScanId, OS)
+                VALUES ($groupId, $os);
+            ";
+            insertGroup.Parameters.AddWithValue("$groupId", groupScanId);
+            insertGroup.Parameters.AddWithValue("$os", response.OsDetection);
+            insertGroup.ExecuteNonQuery();
+
         }
         catch (Exception ex)
         {

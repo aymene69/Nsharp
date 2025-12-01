@@ -1,0 +1,155 @@
+@page "/history"
+@using Nsharp.Models
+@using Nsharp.Services
+@inject HistoryService HistoryService
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Nsharp - Historique</PageTitle>
+
+<div class="history-container">
+    <div class="history-panel">
+
+        <!-- Verification du nombre de scans dans l'historique-->
+        @if (groupedSessions.Count == 0)
+        {
+            <div class="no-results">
+                <p>Aucune session enregistrée</p>
+                <p><small>L'historique de vos scans apparaîtra ici</small></p>
+            </div>
+        }
+        else
+        {
+            <div class="summary">
+                <strong>@groupedSessions.Count session(s) enregistrée(s)</strong>
+            </div>
+
+            <div class="results-list">
+                <!-- On boucle sur chaque session -->
+                @foreach (var session in groupedSessions)
+                {
+                    <div class="result-card session-card">
+                        <div class="result-header session-header" @onclick="() => ToggleSession(session.Key)">
+                            <div class="port-info">
+                                <span class="port-number">Scan du @ConvertTimestampToDate(session.Key) - Os detecté : @GetOsForSession(session.Key)</span>
+                                <span class="service-name">@session.Value.Count scan(s)</span>
+                            </div>
+                        </div>
+
+                        @if (expandedSessions.Contains(session.Key))
+                        {
+                            <div class="session-scans">
+                                <!-- On boucle sur chaque item dans la session -->
+                                @foreach (var item in session.Value)
+                                {
+                                    <div class="scan-item">
+                                        <div class="history-header">
+                                            <strong>Service #@item.Id</strong>
+                                            <button @onclick="() => DeleteRow(item.Id)" class="remove-scan">
+                                                Supprimer
+                                            </button>
+                                        </div>
+
+                                        <div class="history-body">
+                                            <div class="history-grid">
+                                                <div class="info-section">
+                                                    <strong>Cible</strong>
+                                                    @item.Target
+                                                </div>
+                                                <div class="info-section">
+                                                    <strong>Protocole</strong>
+                                                    @item.Summary
+                                                </div>
+                                                <div class="info-section">
+                                                    <strong>Date</strong>
+                                                    @item.Time
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="status-toast @statusClass">
+        @statusMessage
+    </div>
+}
+
+@code {
+    private List<HistoryItem> Items = new();
+    private Dictionary<long, List<HistoryItem>> groupedSessions = new();
+    private HashSet<long> expandedSessions = new();
+    private string statusMessage = "";
+    private string statusClass = "";
+
+    protected override void OnInitialized()
+    {
+        Items = HistoryService.GetGroup();
+        GroupSessions();
+    }
+
+	// Appel a la méthode pour récupérer l'OS selon l'id du scan
+    private string GetOsForSession(long groupScanId)
+    {
+        return HistoryService.GetOsByGroupScanId(groupScanId);
+    }
+
+    // Créer un groupe de scan selon l'id du scan (généré avec le timestamp)
+    private void GroupSessions()
+    {
+        groupedSessions = Items
+            .GroupBy(item => item.GroupScanId)
+            .OrderByDescending(g => g.Key)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(i => i.Id).ToList());
+    }
+
+    // Conversion du timestamp en date compréhensible
+    private string ConvertTimestampToDate(long timestamp)
+    {
+        var dateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).ToLocalTime();
+        return dateTime.ToString("dd/MM/yyyy HH:mm:ss");
+    }
+
+    // Activer le groupement selon une clé avec razor
+    private void ToggleSession(long ScanGroupId)
+    {
+        if (expandedSessions.Contains(ScanGroupId))
+        {
+            expandedSessions.Remove(ScanGroupId);
+        }
+        else
+        {
+            expandedSessions.Add(ScanGroupId);
+        }
+    }
+
+    // Suppression d'une ligne
+    private void DeleteRow(int id)
+    {
+        HistoryService.DeleteRow(id); // on fait appel à notre methode implémentée dans HistoryService.cs
+        Items = HistoryService.GetGroup();
+        GroupSessions();
+
+        // Affichage
+        statusMessage = "Scan supprimé avec succès";
+        statusClass = "success";
+        StateHasChanged();
+
+        Task.Delay(3000).ContinueWith(_ =>
+        {
+            statusMessage = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+}
