@@ -52,4 +52,5 @@ artifacts/
 # ASP.NET Core
 **/appsettings.Development.json
 **/appsettings.local.json
-
+scans.sqlite
+user-settings.json
