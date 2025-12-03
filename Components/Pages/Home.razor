@@ -25,7 +25,7 @@ else
         <h3 class="section-title">Configuration du scan</h3>
         
         <div class="form-group">
-            <label>Cible (IP ou CIDR)</label>
+            <label>Cible (IP ou nom de domaine)</label>
             <input @bind="targetAddress" class="form-input" placeholder="192.168.1.1" />
         </div>
         
@@ -33,13 +33,6 @@ else
             <label>Ports à scanner</label>
             <input @bind="portsToScan" class="form-input" placeholder="22,80,443 ou 1-1000" />
             <small>Laissez vide pour scanner les ports communs</small>
-        </div>
-        
-        <div class="form-group">
-            <label>
-                <input type="checkbox" @bind="verboseMode" />
-                Mode verbeux
-            </label>
         </div>
         
         <div class="form-group">
@@ -147,7 +140,7 @@ else
                             @if (!string.IsNullOrEmpty(result.AiExplanation))
                             {
                                 <div class="info-section ai-section">
-                                    <strong><span class="icon">🛡️</span> Audit & Exploitation (IA)</strong>
+                                    <strong>Audit & exploitation (IA)</strong>
                                     <div class="ai-text">
                                         @((MarkupString)result.AiExplanation.Replace("\n", "<br/>"))
                                     </div>
@@ -178,7 +171,6 @@ else
 @code {
     private string targetAddress = "";
     private string portsToScan = "";
-    private bool verboseMode = false;
     private bool aggressiveMode = false;
     private bool isScanning = false;
     private string scanningStatus = "Scan en cours...";
@@ -209,7 +201,7 @@ else
     {
         if (string.IsNullOrWhiteSpace(targetAddress))
         {
-            statusMessage = "Veuillez saisir une adresse IP ou CIDR";
+            statusMessage = "Veuillez saisir une adresse IP ou nom de domaine";
             statusClass = "error";
             return;
         }
@@ -227,7 +219,6 @@ else
             var response = await NetworkScanner.ScanAsync(
                 targetAddress,
                 portsToScan,
-                verboseMode,
                 aggressiveMode
             );
 

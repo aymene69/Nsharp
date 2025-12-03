@@ -23,7 +23,7 @@ public class NetworkScanner
         _portLookup = serviceProvider.GetService<PortServiceLookup>();
     }
 
-    public async Task<ScanResponse> ScanAsync(string target, string? ports, bool verbose, bool aggressive)
+    public async Task<ScanResponse> ScanAsync(string target, string? ports, bool aggressive)
     {
         var response = new ScanResponse();
 
@@ -61,7 +61,7 @@ public class NetworkScanner
             var openPorts = new List<PortInfo>();
 
             // Scan exclusivement en TCP Connect
-            var openPortNumbers = await ScanTcpConnect(target, portList, verbose);
+            var openPortNumbers = await ScanTcpConnect(target, portList);
             
             openPorts = openPortNumbers.Select(p => new PortInfo 
             { 
@@ -178,7 +178,7 @@ public class NetworkScanner
         return response;
     }
 
-    private async Task<List<int>> ScanTcpConnect(string target, List<int> portList, bool verbose)
+    private async Task<List<int>> ScanTcpConnect(string target, List<int> portList)
     {
         var openPorts = new List<int>();
         using var semaphore = new SemaphoreSlim(MaxConcurrentScans);
@@ -188,7 +188,7 @@ public class NetworkScanner
             await semaphore.WaitAsync();
             try
             {
-                return await ScanSinglePort(target, port, verbose);
+                return await ScanSinglePort(target, port);
             }
             finally
             {
@@ -360,7 +360,7 @@ public class NetworkScanner
         return portList;
     }
 
-    private async Task<PortInfo> ScanSinglePort(string target, int port, bool verbose)
+    private async Task<PortInfo> ScanSinglePort(string target, int port)
     {
         try
         {
