@@ -49,6 +49,7 @@ dotnet watch run
 
 - **Scan de Ports TCP** : Scan rapide multi-threadé pour identifier les ports ouverts (support UDP à venir).
 - **Détection de Services** : Identification avancée des protocoles (HTTP, SSH, FTP, SMTP, DNS, etc.) via analyse des bannières et requêtes spécifiques.
+- **Aide par IA** : Proposition de moyens d'itération vulnérabilité grâce à l'IA
 - **Détection d'OS** : Estimation du système d'exploitation basée sur le TTL (Time To Live).
 - **Rapport PDF** : Génération native de rapports PDF détaillés (sans librairie tierce).
 - **Interface Réactive** : UI moderne construite avec Blazor Server et Bootstrap.
@@ -63,26 +64,6 @@ Ce projet est conçu pour être minimaliste et autonome :
 - **PDF** : Générateur PDF personnalisé implémenté "from scratch" (aucune dépendance type iText ou QuestPDF).
 - **Interface** : Razor Components + CSS Scoped + Bootstrap.
 
-### Structure du projet
-
-```
-Nsharp/
-├── Components/          # Composants UI Blazor
-│   ├── Pages/           # Pages (Home, etc.)
-│   └── Layout/          # Layouts (NavMenu, MainLayout)
-├── Services/            # Logique métier
-│   ├── NetworkScanner.cs           # Moteur de scan principal
-│   ├── AdvancedServiceDetector.cs  # Logique de fingerprinting des services
-│   └── PdfReportService.cs         # Générateur de PDF natif
-├── Models/              # Modèles de données (ScanResult, etc.)
-└── wwwroot/             # Ressources statiques (CSS, JS)
-```
-
-## 🔧 Configuration
-
-Le scanner est configuré pour être performant par défaut :
-- **Concurrence** : Scanne plusieurs ports en parallèle pour plus de rapidité.
-- **Timeouts** : Délais ajustés pour éviter les blocages sur les ports filtrés.
 
 ## 📄 Rapports
 
