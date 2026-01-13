@@ -44,6 +44,9 @@ Pour le développement avec rechargement à chaud (Hot Reload) :
 ```bash
 dotnet watch run
 ```
+### IA
+
+La clé API pour l'IA doit être récupérée chez [ChatAnywhere](https://github.com/chatanywhere/GPT_API_free). De ce fait, l'analyse par IA ne nécessite pas de payer des jetons chez un provider IA tel que OpenAI, etc...
 
 ## 📋 Fonctionnalités
 
